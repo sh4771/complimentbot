@@ -1,0 +1,772 @@
+<div style="display: flex; flex-direction: column; gap: 1rem;">
+                                            <div class="tech-item" style="border-left: 4px solid rgba(100,255,100,0.8);">
+                                                <strong style="color: rgb<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fullscreen Animated Book</title>
+    <style>
+        @font-face {
+          font-family: PixelText;
+          src: url(https://assets.codepen.io/36869/Grand9KPixel.ttf);
+        }
+
+        :root {
+          font-family: 'Helvetica', 'Arial', sans-serif;
+          font-optical-sizing: auto;
+          line-height: 1.5;
+          font-weight: 400;
+
+          color-scheme: dark;
+          color: rgba(255, 255, 255, 0.87);
+          background-color: #000;
+
+          font-synthesis: none;
+          text-rendering: optimizeLegibility;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+          overflow: hidden;
+
+          /* sprite image */
+          --sprite-image: url(https://assets.codepen.io/36869/book.webp);
+
+          /* sprite animation settings */
+          /* animation duration */
+          --sprite-as: .8s;
+          /* animation direction */
+          --sprite-ad: normal;
+          /* animation fill mode */
+          --sprite-af: none;
+          /* animation play state */
+          --sprite-ap: running;
+          /* animation iteration count */
+          --sprite-ai: infinite;
+          /* animation timing function */
+          --sprite-at: linear;
+          /* animation frame rate */
+          --sprite-fr: 12;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            margin: 0;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #000;
+        }
+
+        .sprite-wrapper {
+            position: relative;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* Frame start position */
+        @property --sprite-fs {
+            syntax: "<integer>";
+            initial-value: 0;
+            inherits: true
+        }
+        @property --_progress {
+            syntax: "<percentage>";
+            inherits: false;
+            initial-value: 0%;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            width: 100vw;
+            height: 100vh;
+            padding: 1rem;
+
+            /* sprite columns */
+            --sprite-c: 5;
+            /* sprite image height */
+            --sprite-h: 3000;
+            /* sprite image width */
+            --sprite-w: 9600;
+            /* sprite frames */
+            --sprite-f: 7;
+            /* animation duration based on frame rate */
+            --sprite-as: calc(var(--sprite-f) / var(--sprite-fr) * 1s);
+
+            /* frame rows */
+            --sprite-r: round(up, calc(var(--sprite-f) / var(--sprite-c)), 1);
+            /* frame height */
+            --sprite-sh: calc(var(--sprite-h) / var(--sprite-r));
+            /* frame target height, width - made larger for fullscreen */
+            --sprite-th: calc(var(--sprite-sh) / 1.5);
+
+            /* aspect ratio */
+            --sprite-ar: calc(var(--sprite-th) / var(--sprite-sh));
+            --sprite-uh: calc(var(--sprite-h) * var(--sprite-ar));
+            --sprite-uw: calc(var(--sprite-w) * var(--sprite-ar));
+
+            /* frame width */
+            --sprite-tw: calc(var(--sprite-uw) / var(--sprite-c));
+
+            --slides: 6;
+        }
+
+        .container > h1 {
+            color: #d2d4e1;
+            margin: 0 auto;
+            width: fit-content;
+            font-weight: 500;
+            font-size: 1.8rem;
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
+
+        .book {
+            position: relative;
+            display: grid;
+            grid-template-areas:
+                "scroll scroll scroll";
+            gap: 1rem;
+            flex: 1;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .carousel {
+            counter-increment: curpage;
+            grid-area: scroll;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            overscroll-behavior-x: contain;
+
+            display: grid;
+            margin: 0 auto;
+            width: calc(1px * (var(--sprite-tw) * 0.7042));
+            height: calc(1px * (var(--sprite-th) * 0.6107));
+            grid: 1fr / auto-flow 100%;
+            scroll-timeline: --carousel-timeline x;
+            scroll-behavior: smooth;
+            scrollbar-width: none;
+        }
+
+        .carousel > .carousel-item {
+            scroll-snap-stop: always;
+            scroll-snap-align: start;
+            animation: count-before linear forwards;
+            animation-range: exit;
+            counter-increment: page;
+            animation-timeline: view(x);
+
+            position: relative;
+            box-sizing: border-box;
+            color: #333;
+        }
+
+        .page-container {
+            display: flex;
+            gap: 3rem;
+            height: 100%;
+
+            animation: stay-centered linear both;
+            animation-timeline: view(x);
+            timeline-scope: --parallax-item;
+        }
+
+        .left-page, .right-page {
+            flex: 1;
+            font-size: 1rem;
+            overflow: hidden;
+            display: grid;
+            grid-template-rows: 1fr auto;
+        }
+
+        .left-page:after, .right-page:after {
+            bottom: 15px;
+            color: hsl(45.71deg 69.23% 30%);
+            font-size: 0.9rem;
+        }
+
+        .left-page > div, .right-page > div {
+            text-align: justify;
+            hyphens: auto;
+            line-height: 1.4;
+            display: block;
+            word-wrap: break-word;
+            padding: 10px 0;
+        }
+
+        .left-page {
+            padding: 20px 0 20px 20px;
+        }
+
+        .left-page:after {
+            content: counter(curpage);
+        }
+
+        .right-page {
+            padding: 20px 20px 20px 0;
+            counter-increment: curpage;
+        }
+
+        .right-page:after {
+            content: counter(curpage);
+            place-self: self-end;
+        }
+
+        /* Visual Enhancement Styles */
+        .visual-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .visual-card:hover {
+            border-color: rgba(255, 255, 255, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #ff6b6b, #4ecdc4, #45b7d1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: bold;
+        }
+
+        .glow-effect {
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+
+        .floating-element {
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .pulse-glow {
+            animation: pulse-glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        @keyframes pulse-glow {
+            from { box-shadow: 0 0 20px rgba(255, 255, 255, 0.2); }
+            to { box-shadow: 0 0 40px rgba(255, 255, 255, 0.4); }
+        }
+
+        .tech-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .tech-item {
+            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .tech-item:hover {
+            transform: scale(1.05);
+            background: linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.1));
+        }
+
+        @media (width < 748px) {
+            .container {
+                --sprite-th: calc(var(--sprite-sh) / 2);
+                padding: 1rem;
+            }
+
+            .container > h1 {
+                font-size: 1.8rem;
+            }
+
+            .left-page, .right-page {
+                font-size: 0.8rem;
+            }
+        }
+
+        @media (width < 560px) {
+            .container {
+                --sprite-th: calc(var(--sprite-sh) / 3);
+                padding: 0.5rem;
+            }
+
+            .container > h1 {
+                font-size: 1.2rem;
+            }
+
+            .left-page, .right-page {
+                font-size: 0.6rem;
+            }
+
+            .left-page:after, .right-page:after {
+                font-size: 0.7rem;
+            }
+
+            .tech-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @keyframes stay-centered {
+            entry 0% {
+                opacity: 0;
+                translate: -100%;
+            }
+            entry 75% {
+                opacity: 0;
+                translate: -25%;
+            }
+            entry 100% {
+                opacity: 1;
+                translate: 0%;
+            }
+            exit 0% {
+                opacity: 1;
+                translate: 0%;
+            }
+            exit 50% {
+                opacity: 0;
+                translate: 50%;
+            }
+            exit 100% {
+                opacity: 0;
+                translate: 100%;
+            }
+        }
+
+        @keyframes count-before {
+            1%,
+            100% {
+                counter-increment: page curpage;
+            }
+        }
+
+        @keyframes progress {
+            100% {
+                --_progress: 100%;
+            }
+        }
+
+        @keyframes frame {
+            to {
+                --sprite-fs: var(--sprite-fe);
+            }
+        }
+
+        @media (prefers-reduced-motion) {
+            * {
+                animation: none;
+            }
+        }
+
+        /* Navigation hint */
+        .nav-hint {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 10px 15px;
+            border-radius: 25px;
+            font-size: 0.8rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            animation: fadeInOut 3s ease-in-out infinite;
+        }
+
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="nav-hint">→ Press right arrow to turn pages</div>
+    
+    <div class="container">
+        <h1>Interactive Story Book</h1>
+        
+        <div class="book">
+            <div class="carousel" id="carousel">
+                <!-- Page 1 -->
+                <div class="carousel-item">
+                    <div class="page-container">
+                        <div class="left-page">
+                            <div style="display: flex; flex-direction: column; justify-content: flex-start; align-items: center; height: 100%; text-align: center; padding-top: 15%;">
+                                <h2 class="gradient-text glow-effect floating-element" style="font-size: 2.5rem; margin: 0 0 2rem 0;">
+                                    COMPLIMENT BOT
+                                </h2>
+                                <div class="pulse-glow" style="border-radius: 50%; padding: 20px;">
+                                    <img src="https://media0.giphy.com/media/v1.Y2lkPTZjMDliOTUyMGw2aWpmd3RjOTV1ZGw0NnZyd2dpMzU1ZWYzZ2ZneXZkNXZrM2tlbSZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/4NC3C27zzsOLC/source.gif" alt="Flower" style="width: 150px; border-radius: 50%;">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="right-page">
+                            <div>
+                                <div class="visual-card">
+                                    <h3 class="gradient-text" style="margin-bottom: 1rem;">RESEARCH QUESTIONS</h3>
+                                    <p style="color: rgb(200,200,200); margin-bottom: 0.8rem;">• Can plants tell the difference between kind and unkind words?</p>
+                                    <p style="color: rgb(200,200,200); margin-bottom: 0.8rem;">• How can we design interactive systems that encourage positive compliments?</p>
+                                    <p style="color: rgb(200,200,200);">• Can visual feedback incentivize people to use more positive language?</p>
+                                </div>
+                                
+                                <div class="visual-card">
+                                    <h3 class="gradient-text" style="margin-bottom: 0.8rem;">KEYWORDS</h3>
+                                    <div class="tech-grid">
+                                        <div class="tech-item" style="background: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.1)); color: rgb(255,255,255);">Affective Computing</div>
+                                        <div class="tech-item" style="background: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.1)); color: rgb(255,255,255);">Human-Tech Interaction</div>
+                                        <div class="tech-item" style="background: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.1)); color: rgb(255,255,255);">Emotional Feedback</div>
+                                        <div class="tech-item" style="background: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.1)); color: rgb(255,255,255);">Interactive Art</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="visual-card">
+                                    <h3 class="gradient-text" style="margin-bottom: 0.8rem;">3 INTERSECTING FIELDS</h3>
+                                    <p style="color: rgb(200,200,200); text-align: center;">Human-Computer Interaction<br>Emotional Computing<br>Speculative Design</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Page 2 -->
+                <div class="carousel-item">
+                    <div class="page-container">
+                        <div class="left-page">
+                            <div>
+                                <div class="visual-card">
+                                    <h3 class="gradient-text" style="margin-bottom: 1rem;">HISTORICAL LINEAGE</h3>
+                                    <h4 style="color: rgb(220,220,220); margin-bottom: 0.5rem;">Edward Ihnatowicz 'Senster' 1968-70</h4>
+                                    <div style="margin: 1rem 0; border-radius: 15px; overflow: hidden;">
+                                        <iframe width="100%" height="200" src="https://www.youtube.com/embed/CK7ZMRqyTWU" frameborder="0" allowfullscreen style="border-radius: 15px;"></iframe>
+                                    </div>
+                                    
+                                    <h4 style="color: rgb(220,220,220); margin: 1rem 0 0.5rem 0;">Nam June Paik's Artwork</h4>
+                                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcReGVzD1Sq-S9f51QPfWdqeB89mv0nRrI1Fag&s" alt="Nam June Paik" style="width: 100%; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.3);">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="right-page">
+                            <div>
+                                <div class="visual-card">
+                                    <h3 class="gradient-text" style="margin-bottom: 1rem;">STEPHANIE DINKINS</h3>
+                                    <p style="color: rgb(200,200,200); margin-bottom: 1rem;">Conversations with BINA48 - exploring care & dialogue in AI</p>
+                                    <p style="margin-bottom: 1rem; color: rgb(200,200,200);">Focus on emotional resonance in non-human forms rather than anthropomorphized AI</p>
+                                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTrju4lskDv9sd6fO6gZGgBRrUF48yW2Ti3dg&s" alt="Stephanie Dinkins" style="width: 100%; border-radius: 15px; margin-bottom: 1rem; box-shadow: 0 5px 20px rgba(0,0,0,0.3);">
+                                </div>
+                                
+                                <div class="visual-card">
+                                    <h3 class="gradient-text" style="margin-bottom: 0.8rem;">PROJECT FLORENCE - MICROSOFT</h3>
+                                    <p style="color: rgb(200,200,200); margin-bottom: 1rem;">Speculative plant communication using ML & NLP</p>
+                                    <img src="https://www.microsoft.com/en-us/research/wp-content/uploads/2015/11/florence2-1024x683.jpg" alt="Project Florence" style="width: 100%; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.3);">
+                                    <p style="font-size: 0.9rem; margin-top: 0.8rem; color: rgb(180,180,180); font-style: italic; text-align: center;">My approach: plants as reflective surfaces for human behavior</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Page 3 -->
+                <div class="carousel-item">
+                    <div class="page-container">
+                        <div class="left-page">
+                            <div>
+                                <div class="visual-card">
+                                    <h3 class="gradient-text" style="margin-bottom: 1rem;">THEORETICAL FRAMEWORK</h3>
+                                    
+                                    <div class="tech-item" style="margin-bottom: 1rem;">
+                                        <h4 style="color: rgb(255,255,255); margin-bottom: 0.5rem;">INVESTIGATIVE AESTHETICS</h4>
+                                        <p style="font-size: 0.9rem; color: rgb(200,200,200);">Making emotional energy visible through light and interaction</p>
+                                    </div>
+                                    
+                                    <div class="tech-item" style="margin-bottom: 1rem;">
+                                        <h4 style="color: rgb(255,255,255); margin-bottom: 0.5rem;">RADICAL FRIENDS</h4>
+                                        <p style="font-size: 0.9rem; color: rgb(200,200,200);">Technology as friendship, not control</p>
+                                    </div>
+                                    
+                                    <div class="tech-item" style="margin-bottom: 1rem;">
+                                        <h4 style="color: rgb(255,255,255); margin-bottom: 0.5rem;">PLATFORM CAPITALISM</h4>
+                                        <p style="font-size: 0.9rem; color: rgb(200,200,200);">Resisting emotional energy extraction - no recording, measuring, or selling</p>
+                                    </div>
+                                    
+                                    <div class="tech-item">
+                                        <h4 style="color: rgb(255,255,255); margin-bottom: 0.5rem;">CRITICAL ENGINEERING</h4>
+                                        <p style="font-size: 0.9rem; color: rgb(200,200,200);">Open tools: Arduino, p5.js - accessible and transparent design</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="right-page">
+                            <div>
+                                <div class="visual-card">
+                                    <h3 class="gradient-text" style="margin-bottom: 1rem;">METHODS</h3>
+                                    
+                                    <div style="background: linear-gradient(135deg, rgba(100,200,255,0.2), rgba(255,100,200,0.2)); padding: 1rem; border-radius: 10px; margin-bottom: 1rem;">
+                                        <h4 style="color: rgb(255,255,255); margin-bottom: 0.8rem;">TECHNICAL STACK</h4>
+                                        <p style="color: rgb(200,200,200);">• p5.js + p5.speech Library</p>
+                                        <p style="color: rgb(200,200,200);">• Arduino (LED control)</p>
+                                        <p style="color: rgb(200,200,200);">• JSON positive words database</p>
+                                        <p style="color: rgb(200,200,200);">• Serial communication</p>
+                                        
+                                        <div style="margin-top: 1rem; border-radius: 10px; overflow: hidden;">
+                                            <video width="100%" height="200" controls style="border-radius: 10px;">
+                                                <source src="vieo11.mov" type="video/mp4">
+                                                <source src="vieo11.mov" type="video/quicktime">
+                                                Your browser does not support the video tag.
+                                            </video>
+                                        </div>
+                                    </div>
+                                    
+                                    <div style="background: linear-gradient(135deg, rgba(255,200,100,0.2), rgba(100,255,200,0.2)); padding: 1rem; border-radius: 10px;">
+                                        <h4 style="color: rgb(255,255,255); margin-bottom: 0.8rem;">RESEARCH APPROACH</h4>
+                                        <p style="color: rgb(200,200,200);">• Speculative design methodology</p>
+                                        <p style="color: rgb(200,200,200);">• Qualitative observation</p>
+                                        <p style="color: rgb(200,200,200);">• Emotional response documentation</p>
+                                        <p style="color: rgb(200,200,200);">• Open-ended feedback collection</p>
+                                    </div>
+                                    
+                                    <div class="pulse-glow" style="background: rgba(120,120,120,0.3); padding: 1rem; border-radius: 15px; margin-top: 1rem; text-align: center;">
+                                        <p style="font-style: italic; color: rgb(255,255,255); margin: 0; font-size: 1rem;">
+                                            "A quiet alternative that reminds people small compliments can change the energy in a room"
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Page 4 -->
+                <div class="carousel-item">
+                    <div class="page-container">
+                        <div class="left-page">
+                            <div>
+                                <div class="visual-card">
+                                    <h3 class="gradient-text" style="margin-bottom: 1rem;">DESIGN FRAMEWORK</h3>
+                                    
+                                    <div class="tech-grid" style="margin-bottom: 1.5rem;">
+                                        <div class="tech-item floating-element">
+                                            <h4 style="color: rgb(255,255,255); margin-bottom: 0.5rem;">AESTHETIC</h4>
+                                            <p style="font-size: 0.8rem; color: rgb(200,200,200);">How it looks & feels</p>
+                                        </div>
+                                        <div class="tech-item floating-element" style="animation-delay: 0.5s;">
+                                            <h4 style="color: rgb(255,255,255); margin-bottom: 0.5rem;">COMPUTATIONAL</h4>
+                                            <p style="font-size: 0.8rem; color: rgb(200,200,200);">Speech → Light loop</p>
+                                        </div>
+                                        <div class="tech-item floating-element" style="animation-delay: 1s;">
+                                            <h4 style="color: rgb(255,255,255); margin-bottom: 0.5rem;">PHYSICAL</h4>
+                                            <p style="font-size: 0.8rem; color: rgb(200,200,200);">Present, delicate, alive</p>
+                                        </div>
+                                        <div class="tech-item floating-element" style="animation-delay: 1.5s;">
+                                            <h4 style="color: rgb(255,255,255); margin-bottom: 0.5rem;">CONCEPTUAL</h4>
+                                            <p style="font-size: 0.8rem; color: rgb(200,200,200);">Language & kindness</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div style="text-align: center; padding: 1rem; background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05)); border-radius: 15px;">
+                                        <h3 style="color: rgb(255,255,255); margin-bottom: 0.8rem;">COMPUTATIONAL DESIGN</h3>
+                                        <p style="color: rgb(200,200,200);">Furniture that blooms/glows when hearing compliments</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="right-page">
+                            <div>
+                                <div class="visual-card">
+                                    <h3 class="gradient-text" style="margin-bottom: 1rem;">VISUAL REPRESENTATION</h3>
+                                    
+                                    <div style="background: linear-gradient(135deg, rgba(255,100,255,0.2), rgba(100,255,255,0.2)); padding: 1rem; border-radius: 15px; margin-bottom: 1rem;">
+                                        <p style="color: rgb(220,220,220); margin-bottom: 0.8rem;"><strong style="color: rgb(255,255,255);">Aesthetic Philosophy:</strong> Soft, poetic, slightly surreal</p>
+                                        <p style="color: rgb(220,220,220);"><strong style="color: rgb(255,255,255);">Visual Language:</strong> Light, slow movement, organic forms, gentle interactions</p>
+                                    </div>
+                                    
+                                    <div class="pulse-glow" style="background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.3); padding: 1.5rem; border-radius: 20px; margin: 1rem 0; text-align: center;">
+                                        <p style="margin: 0; font-weight: bold; color: rgb(255,255,255); font-size: 1.1rem;">
+                                            Making invisible emotions tangible
+                                        </p>
+                                    </div>
+                                    
+                                    <div class="visual-card">
+                                        <h4 style="color: rgb(255,255,255); margin-bottom: 0.8rem;">DESIGN Elements</h4>
+                                        <p style="color: rgb(200,200,200);">• Glowing flower visualization</p>
+                                        <p style="color: rgb(200,200,200);">• Translucent textures</p>
+                                        <p style="color: rgb(200,200,200);">• Hidden mechanics</p>
+                                        <p style="color: rgb(200,200,200);">• Living thing interaction</p>
+                                    </div>
+                                    
+                                    <div style="border-left: 4px solid rgba(255,255,255,0.6); padding-left: 1rem; margin-top: 1.5rem; background: rgba(255,255,255,0.05); border-radius: 10px; padding: 1rem;">
+                                        <p style="font-style: italic; margin: 0; color: rgb(255,255,255); text-align: center;">
+                                            "I want viewers to relate to the work like they would to a living thing, not a machine"
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Page 5 -->
+                <div class="carousel-item">
+                    <div class="page-container">
+                        <div class="left-page">
+                            <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; height: 100%;">
+                                <h2 class="gradient-text glow-effect" style="font-size: 2.5rem; margin-bottom: 2rem;">RHETORICAL ARGUMENT</h2>
+                                
+                                <div class="visual-card pulse-glow" style="text-align: center; max-width: 400px;">
+                                    <h3 style="margin: 0 0 1rem 0; font-size: 1.4rem; color: rgb(255,255,255);">Small acts of kindness deserve to be seen and felt</h3>
+                                    <p style="margin: 0; font-size: 1.1rem; line-height: 1.6; color: rgb(200,200,200);">
+                                        An argument for noticing the quiet things:<br>
+                                        gentle words • emotional presence • soft attention
+                                    </p>
+                                </div>
+                                
+                                <div style="margin-top: 2rem;" class="floating-element">
+                                    <img src="https://media0.giphy.com/media/v1.Y2lkPTZjMDliOTUyMGw2aWpmd3RjOTV1ZGw0NnZyd2dpMzU1ZWYzZ2ZneXZkNXZrM2tlbSZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/4NC3C27zzsOLC/source.gif" alt="Glowing Flower" style="width: 120px; border-radius: 50%; filter: drop-shadow(0 0 20px rgba(255,255,255,0.3));">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="right-page">
+                            <div style="display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
+                                <div>
+                                    <div class="visual-card">
+                                        <h3 class="gradient-text" style="margin-bottom: 1rem;">PROJECT IMPACT</h3>
+                                        
+                                        <div style="display: flex; flex-direction: column; gap: 1rem;">
+                                            <div class="tech-item" style="border-left: 4px solid rgba(100,255,100,0.8);">
+                                                <strong style="color: rgb(255,255,255);">Encourages</strong><br>
+                                                <span style="font-size: 0.9rem; color: rgb(200,200,200);">Positive language in daily interactions</span>
+                                            </div>
+                                            
+                                            <div class="tech-item" style="border-left: 4px solid rgba(100,200,255,0.8);">
+                                                <strong style="color: rgb(255,255,255);">Visualizes</strong><br>
+                                                <span style="font-size: 0.9rem; color: rgb(200,200,200);">Invisible emotional energy</span>
+                                            </div>
+                                            
+                                            <div class="tech-item" style="border-left: 4px solid rgba(255,100,200,0.8);">
+                                                <strong style="color: rgb(255,255,255);">Creates</strong><br>
+                                                <span style="font-size: 0.9rem; color: rgb(200,200,200);">Gentle awareness of kindness</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="pulse-glow" style="text-align: center; padding: 1.5rem; background: linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.1)); border-radius: 20px; margin-top: 1rem;">
+                                        <p style="margin: 0; font-size: 1.1rem; color: rgb(255,255,255); font-style: italic;">
+                                            "Technology that listens without judgment,<br>responds without profit"
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Final Page -->
+                <div class="carousel-item">
+                    <div class="page-container">
+                        <div class="left-page">
+                            <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; height: 100%;">
+                                <h2 class="gradient-text glow-effect" style="margin-bottom: 2rem; font-size: 2.5rem;">THANK YOU</h2>
+                                
+                                <div style="width: 120px; height: 120px; margin: 1rem 0; background: linear-gradient(135deg, rgba(255,100,200,0.3), rgba(100,200,255,0.3)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; color: white;" class="floating-element pulse-glow">✦</div>
+                                
+                                <div class="visual-card" style="max-width: 400px;">
+                                    <p style="font-size: 1.2rem; line-height: 1.6; margin-bottom: 2rem; color: rgb(255,255,255);">
+                                        A project exploring the intersection of<br>
+                                        technology, kindness, and emotional presence
+                                    </p>
+                                    
+                                    <div style="background: linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.1)); padding: 1rem; border-radius: 15px;">
+                                        <p style="margin: 0; color: rgb(255,255,255); font-style: italic; font-size: 1rem;">
+                                            "Small compliments can change<br>the energy in a room"
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="right-page">
+                            <div style="display: flex; flex-direction: column; justify-content: center; gap: 2rem;">
+                                <div class="visual-card">
+                                    <h3 class="gradient-text" style="text-align: center; margin-bottom: 1.5rem;">QUESTIONS & DISCUSSION</h3>
+                                    
+                                    <div style="display: flex; flex-direction: column; gap: 1rem;">
+                                        <div class="tech-item" style="background: linear-gradient(135deg, rgba(100,255,100,0.2), rgba(100,255,100,0.1));">
+                                            <strong style="color: rgb(255,255,255);">How might we design technology that encourages rather than extracts?</strong>
+                                        </div>
+                                        
+                                        <div class="tech-item" style="background: linear-gradient(135deg, rgba(100,200,255,0.2), rgba(100,200,255,0.1));">
+                                            <strong style="color: rgb(255,255,255);">What role should emotion play in human-computer interaction?</strong>
+                                        </div>
+                                        
+                                        <div class="tech-item" style="background: linear-gradient(135deg, rgba(255,200,100,0.2), rgba(255,200,100,0.1));">
+                                            <strong style="color: rgb(255,255,255);">Can gentle technology change how we communicate?</strong>
+                                        </div>
+                                    </div>
+                                    
+                                    <div style="text-align: center; margin-top: 2rem;" class="pulse-glow">
+                                        <img src="https://media0.giphy.com/media/v1.Y2lkPTZjMDliOTUyMGw2aWpmd3RjOTV1ZGw0NnZyd2dpMzU1ZWYzZ2ZneXZkNXZrM2tlbSZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/4NC3C27zzsOLC/source.gif" alt="Compliment Bot" style="width: 120px; border-radius: 50%; filter: drop-shadow(0 0 20px rgba(255,255,255,0.4));">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            const carousel = document.getElementById('carousel');
+            const currentScroll = carousel.scrollLeft;
+            const itemWidth = carousel.offsetWidth;
+            
+            if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                carousel.scrollTo({
+                    left: currentScroll + itemWidth,
+                    behavior: 'smooth'
+                });
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                carousel.scrollTo({
+                    left: currentScroll - itemWidth,
+                    behavior: 'smooth'
+                });
+            }
+        });
+
+        // Hide navigation hint after first interaction
+        let hintHidden = false;
+        document.addEventListener('keydown', function() {
+            if (!hintHidden) {
+                const hint = document.querySelector('.nav-hint');
+                hint.style.opacity = '0';
+                hint.style.transition = 'opacity 1s ease';
+                setTimeout(() => hint.style.display = 'none', 1000);
+                hintHidden = true;
+            }
+        });
+    </script>
+</body>
+</html>
